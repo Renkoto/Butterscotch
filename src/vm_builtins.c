@@ -3471,7 +3471,7 @@ static RValue dsStreamReadValue(DsReadStream* s, int32_t version) {
         case 3: // VALUE_PTR: native serializes as int64; same wire shape.
             return RValue_makeInt64(dsStreamReadI64(s));
         case DS_STREAM_VALUE_BOOL:
-            return RValue_makeBool(dsStreamReadF64(s) != 0.0);
+            return RValue_makeBool(dsStreamReadF64(s) != (double) 0.0);
         case DS_STREAM_VALUE_STRING: {
             int32_t len = dsStreamReadS32(s);
             if (s->error || 0 > len || s->pos + len > s->size) { s->error = true; return RValue_makeUndefined(); }
