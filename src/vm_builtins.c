@@ -6832,7 +6832,7 @@ static RValue builtin_draw_text(VMContext* ctx, RValue* args, MAYBE_UNUSED int32
     char* str = RValue_toString(args[2]);
 
     PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
-    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f);
+    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f, -1.0f);
     PreprocessedText_free(processedText);
     free(str);
     return RValue_makeUndefined();
@@ -6850,15 +6850,27 @@ static RValue builtin_draw_text_transformed(VMContext* ctx, RValue* args, MAYBE_
     float angle = (float) RValue_toReal(args[5]);
 
     PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
-    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, xscale, yscale, angle);
+    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, xscale, yscale, angle, -1.0f);
     PreprocessedText_free(processedText);
     free(str);
     return RValue_makeUndefined();
 }
 
-static RValue builtin_draw_text_ext(VMContext* ctx, RValue* args, MAYBE_UNUSED int32_t argCount) {
-    logSemiStubbedFunction(ctx, "draw_text_ext");
+// Drives draw_text_ext / draw_text_ext_transformed by wrapping the (preprocessed) text and forwarding to drawText.
+// Disable wrapping with 0 > "width", keep the font default line stride with 0 > "separation".
+static void drawTextExtCommon(Runner* runner, const char* str, float x, float y, float xscale, float yscale, float angle, int32_t separation, int32_t width) {
+    int32_t fontIndex = runner->renderer->drawFont;
+    if (0 > fontIndex || (uint32_t) fontIndex >= runner->dataWin->font.count) return;
+    Font* font = &runner->dataWin->font.fonts[fontIndex];
 
+    PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
+    PreprocessedText wrappedText = TextUtils_wrapText(font, processedText.text, width);
+    runner->renderer->vtable->drawText(runner->renderer, wrappedText.text, x, y, xscale, yscale, angle, (float) separation);
+    PreprocessedText_free(wrappedText);
+    PreprocessedText_free(processedText);
+}
+
+static RValue builtin_draw_text_ext(VMContext* ctx, RValue* args, MAYBE_UNUSED int32_t argCount) {
     Runner* runner = ctx->runner;
     if (runner->renderer == nullptr) return RValue_makeUndefined();
 
@@ -6868,16 +6880,12 @@ static RValue builtin_draw_text_ext(VMContext* ctx, RValue* args, MAYBE_UNUSED i
     int32_t separation = RValue_toInt32(args[3]);
     int32_t width = RValue_toInt32(args[4]);
 
-    PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
-    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f);
-    PreprocessedText_free(processedText);
+    drawTextExtCommon(runner, str, x, y, 1.0f, 1.0f, 0.0f, separation, width);
     free(str);
     return RValue_makeUndefined();
 }
 
 static RValue builtin_draw_text_ext_transformed(VMContext* ctx, RValue* args, MAYBE_UNUSED int32_t argCount) {
-    logSemiStubbedFunction(ctx, "draw_text_ext_transformed");
-
     Runner* runner = ctx->runner;
     if (runner->renderer == nullptr) return RValue_makeUndefined();
 
@@ -6890,9 +6898,7 @@ static RValue builtin_draw_text_ext_transformed(VMContext* ctx, RValue* args, MA
     float yscale = (float) RValue_toReal(args[6]);
     float angle = (float) RValue_toReal(args[7]);
 
-    PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
-    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, xscale, yscale, angle);
-    PreprocessedText_free(processedText);
+    drawTextExtCommon(runner, str, x, y, xscale, yscale, angle, separation, width);
     free(str);
     return RValue_makeUndefined();
 }
@@ -6911,7 +6917,7 @@ static RValue builtin_draw_text_color(VMContext* ctx, RValue* args, MAYBE_UNUSED
     float alpha = (float) RValue_toReal(args[7]);
 
     PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
-    runner->renderer->vtable->drawTextColor(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f, c1, c2, c3, c4, alpha);
+    runner->renderer->vtable->drawTextColor(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f, c1, c2, c3, c4, alpha, -1.0f);
     PreprocessedText_free(processedText);
     free(str);
     return RValue_makeUndefined();
@@ -6934,43 +6940,54 @@ static RValue builtin_draw_text_color_transformed(VMContext* ctx, RValue* args, 
     float alpha = (float) RValue_toReal(args[10]);
 
     PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
-    runner->renderer->vtable->drawTextColor(runner->renderer, processedText.text, x, y, xscale, yscale, angle, c1, c2, c3, c4, alpha);
+    runner->renderer->vtable->drawTextColor(runner->renderer, processedText.text, x, y, xscale, yscale, angle, c1, c2, c3, c4, alpha, -1.0f);
     PreprocessedText_free(processedText);
     free(str);
     return RValue_makeUndefined();
 }
 
-static RValue builtin_draw_text_color_ext(VMContext* ctx, RValue* args, MAYBE_UNUSED int32_t argCount) {
-    logSemiStubbedFunction(ctx, "draw_text_color_ext");
+// Drives draw_text_color_ext / draw_text_color_ext_transformed by wrapping the (preprocessed) text and forwarding to drawTextColor.
+static void drawTextColorExtCommon(Runner* runner, const char* str, float x, float y, float xscale, float yscale, float angle, int32_t separation, int32_t width, int32_t c1, int32_t c2, int32_t c3, int32_t c4, float alpha) {
+    int32_t fontIndex = runner->renderer->drawFont;
+    if (0 > fontIndex || runner->dataWin->font.count <= (uint32_t) fontIndex) return;
+    Font* font = &runner->dataWin->font.fonts[fontIndex];
 
+    PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
+    PreprocessedText wrappedText = TextUtils_wrapText(font, processedText.text, width);
+    runner->renderer->vtable->drawTextColor(runner->renderer, wrappedText.text, x, y, xscale, yscale, angle, c1, c2, c3, c4, alpha, (float) separation);
+    PreprocessedText_free(wrappedText);
+    PreprocessedText_free(processedText);
+}
+
+static RValue builtin_draw_text_color_ext(VMContext* ctx, RValue* args, MAYBE_UNUSED int32_t argCount) {
     Runner* runner = ctx->runner;
     if (runner->renderer == nullptr) return RValue_makeUndefined();
 
     float x = (float) RValue_toReal(args[0]);
     float y = (float) RValue_toReal(args[1]);
     char* str = RValue_toString(args[2]);
+    int32_t separation = RValue_toInt32(args[3]);
+    int32_t width = RValue_toInt32(args[4]);
     int32_t c1 = (float) RValue_toInt32(args[5]);
     int32_t c2 = (float) RValue_toInt32(args[6]);
     int32_t c3 = (float) RValue_toInt32(args[7]);
     int32_t c4 = (float) RValue_toInt32(args[8]);
     float alpha = (float) RValue_toReal(args[9]);
 
-    PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
-    runner->renderer->vtable->drawTextColor(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f, c1, c2, c3, c4, alpha);
-    PreprocessedText_free(processedText);
+    drawTextColorExtCommon(runner, str, x, y, 1.0f, 1.0f, 0.0f, separation, width, c1, c2, c3, c4, alpha);
     free(str);
     return RValue_makeUndefined();
 }
 
 static RValue builtin_draw_text_color_ext_transformed(VMContext* ctx, RValue* args, MAYBE_UNUSED int32_t argCount) {
-    logSemiStubbedFunction(ctx, "draw_text_color_ext_transformed");
-
     Runner* runner = ctx->runner;
     if (runner->renderer == nullptr) return RValue_makeUndefined();
 
     float x = (float) RValue_toReal(args[0]);
     float y = (float) RValue_toReal(args[1]);
     char* str = RValue_toString(args[2]);
+    int32_t separation = RValue_toInt32(args[3]);
+    int32_t width = RValue_toInt32(args[4]);
     float xscale = (float) RValue_toReal(args[5]);
     float yscale = (float) RValue_toReal(args[6]);
     float angle = (float) RValue_toReal(args[7]);
@@ -6980,9 +6997,7 @@ static RValue builtin_draw_text_color_ext_transformed(VMContext* ctx, RValue* ar
     int32_t c4 = (float) RValue_toInt32(args[11]);
     float alpha = (float) RValue_toReal(args[12]);
 
-    PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
-    runner->renderer->vtable->drawTextColor(runner->renderer, processedText.text, x, y, xscale, yscale, angle, c1, c2, c3, c4, alpha);
-    PreprocessedText_free(processedText);
+    drawTextColorExtCommon(runner, str, x, y, xscale, yscale, angle, separation, width, c1, c2, c3, c4, alpha);
     free(str);
     return RValue_makeUndefined();
 }
@@ -8637,7 +8652,7 @@ static void drawLegacyDndCaptionedCounter(VMContext* ctx, RValue* args, int32_t 
     memcpy(combined + captionLen, numBuf, numLen + 1);
 
     PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, combined);
-    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f);
+    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f, -1.0f);
     PreprocessedText_free(processedText);
     free(combined);
     free(caption);
@@ -8863,7 +8878,7 @@ static RValue builtin_action_draw_text(VMContext* ctx, RValue* args, MAYBE_UNUSE
     applyActionRelativeOffset(ctx, &x, &y);
 
     PreprocessedText processedText = TextUtils_preprocessGmlTextIfNeeded(runner, str);
-    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f);
+    runner->renderer->vtable->drawText(runner->renderer, processedText.text, x, y, 1.0f, 1.0f, 0.0f, -1.0f);
     PreprocessedText_free(processedText);
     free(str);
     return RValue_makeUndefined();
