@@ -298,6 +298,7 @@ int main(int argc, char* argv[]) {
     bool debugPaused = false;
     bool debugShowCollisionMasks = false;
     double lastFrameTime = PS3_GET_TIME;
+    double lastFrameStartTime = PS3_GET_TIME; // for delta_time
     while (!shouldExit && !runner->shouldExit) {
         // Clear last frame's pressed/released state, then poll new input events
         RunnerKeyboard_beginFrame(runner->keyboard);
@@ -366,6 +367,9 @@ int main(int argc, char* argv[]) {
         }
 
         double frameStartTime = PS3_GET_TIME;
+        runner->deltaTime = (frameStartTime - lastFrameStartTime) * 1000000.0;
+        lastFrameStartTime = frameStartTime;
+
         double stepTime = 0.0;
         double audioTime = 0.0;
         if (shouldStep) {

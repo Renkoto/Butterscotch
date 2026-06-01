@@ -554,8 +554,13 @@ int main(int argc, char* argv[]) {
     PS2Overlay_setDebugOverlayState(debugOverlayStartEnabled ? STATS_ENABLED : STATS_DISABLED, runner);
     uint16_t prevOverlayPadButtons = 0xFFFF;
 
+    u64 lastFrameStartTime = GetTimerSystemTime(); // for delta_time
     while (!runner->shouldExit) {
         u64 frameStartTime = GetTimerSystemTime();
+        u64 deltaTicks = frameStartTime - lastFrameStartTime;
+        runner->deltaTime = (double) (deltaTicks * 1000000ULL / (u64) kBUSCLK);
+        lastFrameStartTime = frameStartTime;
+
         // ===[ Poll Controller (always poll every vsync) ]===
         // NOTE: We do NOT call RunnerKeyboard_beginFrame here! Pressed/released edges accumulate across vsyncs so that quick taps on non-game-frame
         // vsyncs are not lost

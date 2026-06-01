@@ -221,6 +221,7 @@ typedef enum {
     // Other
     BUILTIN_VAR_FPS,
     BUILTIN_VAR_DEBUG_MODE,
+    BUILTIN_VAR_DELTA_TIME,
 
     // Legacy GMS 1.x globals
     BUILTIN_VAR_SCORE,

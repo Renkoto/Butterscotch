@@ -1159,6 +1159,7 @@ int main(int argc, char* argv[]) {
         bool debugShowCollisionMasks = false;
         bool actuallyShuttingDown = false;
         double lastFrameTime = platformGetTime();
+        double lastFrameTimeBeforeSleep = platformGetTime();
         bool shouldWindowClose = false;
         while (true) {
             if (runner->shouldExit || shouldWindowClose) {
@@ -1170,6 +1171,8 @@ int main(int argc, char* argv[]) {
                 // Break from the game loop, we'll handle this later
                 break;
             }
+
+            runner->deltaTime = (platformGetTime() - lastFrameTimeBeforeSleep) * 1000000.0;
 
             // Clear last frame's pressed/released state, then poll new input events
             RunnerKeyboard_beginFrame(runner->keyboard);
@@ -1433,6 +1436,8 @@ int main(int argc, char* argv[]) {
                     platformSwapBuffers();
                 Runner_handlePendingRoomChange(runner);
             }
+
+            lastFrameTimeBeforeSleep = platformGetTime();
 
             // Limit frame rate to room speed (skip in headless mode for max speed!!)
             if (!args.headless && runner->currentRoom->speed > 0) {

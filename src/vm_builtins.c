@@ -262,6 +262,7 @@ static const BuiltinVarEntry BUILTIN_VAR_TABLE[] = {
     { "current_weekday", BUILTIN_VAR_CURRENT_WEEKDAY },
     { "current_year", BUILTIN_VAR_CURRENT_YEAR },
     { "debug_mode", BUILTIN_VAR_DEBUG_MODE },
+    { "delta_time", BUILTIN_VAR_DELTA_TIME },
     { "depth", BUILTIN_VAR_DEPTH },
     { "direction", BUILTIN_VAR_DIRECTION },
     { "false", BUILTIN_VAR_FALSE },
@@ -1006,6 +1007,8 @@ RValue VMBuiltins_getVariable(VMContext* ctx, int16_t builtinVarId, const char* 
             return RValue_makeReal(ctx->dataWin->gen8.gms2FPS);
         case BUILTIN_VAR_DEBUG_MODE:
             return RValue_makeBool(false);
+        case BUILTIN_VAR_DELTA_TIME:
+            return RValue_makeReal(runner->deltaTime);
 
         case BUILTIN_VAR_SCORE:
             return RValue_makeReal(runner->score);

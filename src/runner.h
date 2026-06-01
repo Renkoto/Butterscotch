@@ -418,6 +418,8 @@ struct Runner {
     // Tracked separately so event/step/draw iteration over runner->instances stays clean.
     Instance** structInstances;
     int32_t forcedDepth;
+    // The time between the last frame and the current frame, stored in microseconds.
+    double deltaTime;
 
     // ===[ Builtin function state ]===
     DsMapEntry** dsMapPool; // stb_ds array of stb_ds hashmaps

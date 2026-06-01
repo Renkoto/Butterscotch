@@ -91,8 +91,13 @@ static int mkdirP(const char* path) {
 
 void* loop() {
     double lastFrameTimeMs = emscripten_get_now();
+    double lastFrameStartMs = emscripten_get_now(); // for delta_time
 
     while (!gRunner->shouldExit) {
+        double frameStartMs = emscripten_get_now();
+        gRunner->deltaTime = (frameStartMs - lastFrameStartMs) * 1000.0;
+        lastFrameStartMs = frameStartMs;
+
         RunnerKeyboard_beginFrame(gRunner->keyboard);
 
         // Process inputs
