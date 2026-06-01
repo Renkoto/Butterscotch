@@ -199,6 +199,13 @@ Here's a video :3 https://youtu.be/c9r79sQABYg
 <img width="160" height="120" alt="image" src="https://github.com/user-attachments/assets/4ea7d078-784d-4861-aeb1-4ee2d1d70508" />
 <img width="160" height="120" alt="image" src="https://github.com/user-attachments/assets/45eb5be9-5e7b-4930-bb7e-2f2c49c76a49" />
 
+### NXTALE (Undertale for Xbox One) (GLFW) [WAD Version 17]
+
+<img width="160" alt="image" src="https://github.com/user-attachments/assets/7c4e2224-76e4-495e-8382-fad2dbdef207" />
+<img width="160" alt="image" src="https://github.com/user-attachments/assets/6af34191-66c6-44dd-8712-907641520073" />
+<img width="160" alt="image" src="https://github.com/user-attachments/assets/150aec4c-8cfb-4cef-9db0-f339158b0d14" />
+<img width="160" alt="image" src="https://github.com/user-attachments/assets/4e3489e8-11de-4c8c-953c-f7b776bb4eb8" />
+
 ### AM2R (GLFW) [WAD Version 14]
 
 <img width="160" alt="image" src="https://github.com/user-attachments/assets/3e46dfed-487c-4d91-9cd5-c71adc7a6cb5" />
