@@ -5178,41 +5178,67 @@ static RValue builtin_ini_open(VMContext* ctx, RValue* args, int32_t argCount) {
     return RValue_makeUndefined();
 }
 
-static RValue builtin_ini_close(VMContext* ctx, MAYBE_UNUSED RValue* args, MAYBE_UNUSED int32_t argCount) {
+// ini_open_from_string(content): opens a ini file from a string
+static RValue builtin_ini_open_from_string(VMContext* ctx, RValue* args, int32_t argCount) {
+    if (1 > argCount) return RValue_makeUndefined();
+
     Runner* runner = ctx->runner;
+    const char* content = (args[0].type == RVALUE_STRING ? args[0].string : "");
+
+    // Implicit close of any open INI (no disk write)
     if (runner->currentIni != nullptr) {
-        FileSystem* fs = runner->fileSystem;
-
-        if (runner->currentIniDirty) {
-            char* serialized = Ini_serialize(runner->currentIni, INI_SERIALIZE_DEFAULT_INITIAL_CAPACITY);
-            fs->vtable->writeFileText(fs, runner->currentIniPath, serialized);
-            free(serialized);
-        }
-
-        // Move to cache instead of freeing
-        discardIniCache(runner);
-        runner->cachedIni = runner->currentIni;
-        runner->cachedIniPath = runner->currentIniPath;
+        Ini_free(runner->currentIni);
         runner->currentIni = nullptr;
-        runner->currentIniPath = nullptr;
-    } else {
-        free(runner->currentIniPath);
-        runner->currentIniPath = nullptr;
     }
+    free(runner->currentIniPath);
+    runner->currentIniPath = nullptr; // string-backed: no file path
+
+    runner->currentIni = Ini_parse(content);
+    runner->currentIniDirty = false;
 
     return RValue_makeUndefined();
 }
 
+static RValue builtin_ini_close(VMContext* ctx, MAYBE_UNUSED RValue* args, MAYBE_UNUSED int32_t argCount) {
+    Runner* runner = ctx->runner;
+    if (runner->currentIni == nullptr) {
+        free(runner->currentIniPath);
+        runner->currentIniPath = nullptr;
+        // No ini open = empty
+        return RValue_makeOwnedString(safeStrdup(""));
+    }
+
+    // Serialize the current contents.
+    char* serialized = Ini_serialize(runner->currentIni, INI_SERIALIZE_DEFAULT_INITIAL_CAPACITY);
+
+    // Write back to disk only for file-backed INIs (ini_open).
+    if (runner->currentIniDirty && runner->currentIniPath != nullptr) {
+        FileSystem* fs = runner->fileSystem;
+        fs->vtable->writeFileText(fs, runner->currentIniPath, serialized);
+    }
+
+    // Move to cache instead of freeing
+    discardIniCache(runner);
+    runner->cachedIni = runner->currentIni;
+    runner->cachedIniPath = runner->currentIniPath;
+    runner->currentIni = nullptr;
+    runner->currentIniPath = nullptr;
+
+    return RValue_makeOwnedString(serialized); // takes ownership of serialized
+}
+
 static RValue builtin_ini_read_string(VMContext* ctx, RValue* args, int32_t argCount) {
     Runner* runner = ctx->runner;
-    if (3 > argCount || runner->currentIni == nullptr) return RValue_makeOwnedString(safeStrdup(""));
+    if (3 > argCount) return RValue_makeOwnedString(safeStrdup(""));
 
-    const char* section = (args[0].type == RVALUE_STRING ? args[0].string : "");
-    const char* key = (args[1].type == RVALUE_STRING ? args[1].string : "");
+    if (runner->currentIni != nullptr) {
+        const char* section = (args[0].type == RVALUE_STRING ? args[0].string : "");
+        const char* key = (args[1].type == RVALUE_STRING ? args[1].string : "");
 
-    const char* value = Ini_getString(runner->currentIni, section, key);
-    if (value != nullptr) {
-        return RValue_makeOwnedString(safeStrdup(value));
+        const char* value = Ini_getString(runner->currentIni, section, key);
+        if (value != nullptr) {
+            return RValue_makeOwnedString(safeStrdup(value));
+        }
     }
 
     // Return the default value (3rd arg)
@@ -5225,14 +5251,16 @@ static RValue builtin_ini_read_string(VMContext* ctx, RValue* args, int32_t argC
 
 static RValue builtin_ini_read_real(VMContext* ctx, RValue* args, int32_t argCount) {
     Runner* runner = ctx->runner;
-    if (3 > argCount || runner->currentIni == nullptr) return RValue_makeReal(0.0);
+    if (3 > argCount) return RValue_makeReal(0.0);
+    
+    if (runner->currentIni != nullptr) {
+        const char* section = (args[0].type == RVALUE_STRING ? args[0].string : "");
+        const char* key = (args[1].type == RVALUE_STRING ? args[1].string : "");
 
-    const char* section = (args[0].type == RVALUE_STRING ? args[0].string : "");
-    const char* key = (args[1].type == RVALUE_STRING ? args[1].string : "");
-
-    const char* value = Ini_getString(runner->currentIni, section, key);
-    if (value != nullptr) {
-        return RValue_makeReal(atof(value));
+        const char* value = Ini_getString(runner->currentIni, section, key);
+        if (value != nullptr) {
+            return RValue_makeReal(atof(value));
+        }
     }
 
     return RValue_makeReal(RValue_toReal(args[2]));
@@ -12324,6 +12352,7 @@ void VMBuiltins_registerAll(VMContext* ctx) {
 
     // INI
     VM_registerBuiltin(ctx, "ini_open", builtin_ini_open);
+    VM_registerBuiltin(ctx, "ini_open_from_string", builtin_ini_open_from_string);
     VM_registerBuiltin(ctx, "ini_close", builtin_ini_close);
     VM_registerBuiltin(ctx, "ini_write_real", builtin_ini_write_real);
     VM_registerBuiltin(ctx, "ini_write_string", builtin_ini_write_string);
