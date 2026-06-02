@@ -9044,8 +9044,8 @@ static RValue builtin_place_meeting(VMContext* ctx, RValue* args, int32_t argCou
                     if (other->lastCollisionQueryId == query.queryId) continue;
                     other->lastCollisionQueryId = query.queryId;
 
-                    if (query.filterByObject && !VM_isObjectOrDescendant(runner->dataWin, other->objectIndex, target)) continue;
-                    if (query.filterByInstanceId && other->instanceId != (uint32_t) target) continue;
+                    if (!query.matchAll && query.filterByObject && !VM_isObjectOrDescendant(runner->dataWin, other->objectIndex, target)) continue;
+                    if (!query.matchAll && query.filterByInstanceId && other->instanceId != (uint32_t) target) continue;
 
                     InstanceBBox otherBBox = Collision_computeBBox(runner, other);
                     if (!otherBBox.valid) continue;
@@ -9365,9 +9365,8 @@ static RValue builtin_collision_circle(VMContext* ctx, RValue* args, int32_t arg
                 if (inst->lastCollisionQueryId == query.queryId) continue;
                 inst->lastCollisionQueryId = query.queryId;
 
-                if (query.filterByObject && !VM_isObjectOrDescendant(ctx->dataWin, inst->objectIndex, targetObjIndex)) continue;
-                if (query.filterByInstanceId && inst->instanceId != (uint32_t) targetObjIndex) continue;
-                if (!query.filterByObject && !query.filterByInstanceId && targetObjIndex != INSTANCE_ALL) continue;
+                if (!query.matchAll && query.filterByObject && !VM_isObjectOrDescendant(ctx->dataWin, inst->objectIndex, targetObjIndex)) continue;
+                if (!query.matchAll && query.filterByInstanceId && inst->instanceId != (uint32_t) targetObjIndex) continue;
 
                 if (!Collision_circleOverlapsInstance(ctx->runner, inst, cx, cy, radius)) continue;
 
@@ -9454,8 +9453,8 @@ static RValue builtin_collision_rectangle_list(VMContext* ctx, RValue* args, int
                 if (inst->lastCollisionQueryId == query.queryId) continue;
                 inst->lastCollisionQueryId = query.queryId;
 
-                if (query.filterByObject && !VM_isObjectOrDescendant(ctx->dataWin, inst->objectIndex, target)) continue;
-                if (query.filterByInstanceId && inst->instanceId != (uint32_t) target) continue;
+                if (!query.matchAll && query.filterByObject && !VM_isObjectOrDescendant(ctx->dataWin, inst->objectIndex, target)) continue;
+                if (!query.matchAll && query.filterByInstanceId && inst->instanceId != (uint32_t) target) continue;
 
                 if (!Collision_rectOverlapsInstance(ctx->runner, inst, x1, y1, x2, y2)) continue;
                 InstanceBBox bbox = Collision_computeBBox(ctx->runner, inst);
@@ -9571,8 +9570,8 @@ static RValue builtin_instance_place(VMContext* ctx, RValue* args, int32_t argCo
                     if (other->lastCollisionQueryId == query.queryId) continue;
                     other->lastCollisionQueryId = query.queryId;
 
-                    if (query.filterByObject && !VM_isObjectOrDescendant(runner->dataWin, other->objectIndex, targetObjIndex)) continue;
-                    if (query.filterByInstanceId && other->instanceId != (uint32_t) targetObjIndex) continue;
+                    if (!query.matchAll && query.filterByObject && !VM_isObjectOrDescendant(runner->dataWin, other->objectIndex, targetObjIndex)) continue;
+                    if (!query.matchAll && query.filterByInstanceId && other->instanceId != (uint32_t) targetObjIndex) continue;
 
                     InstanceBBox otherBBox = Collision_computeBBox(runner, other);
                     if (!otherBBox.valid) continue;
@@ -9631,8 +9630,8 @@ static RValue builtin_instance_place_list(VMContext* ctx, RValue* args, int32_t 
                     if (other->lastCollisionQueryId == query.queryId) continue;
                     other->lastCollisionQueryId = query.queryId;
 
-                    if (query.filterByObject && !VM_isObjectOrDescendant(runner->dataWin, other->objectIndex, targetObjIndex)) continue;
-                    if (query.filterByInstanceId && other->instanceId != (uint32_t) targetObjIndex) continue;
+                    if (!query.matchAll && query.filterByObject && !VM_isObjectOrDescendant(runner->dataWin, other->objectIndex, targetObjIndex)) continue;
+                    if (!query.matchAll && query.filterByInstanceId && other->instanceId != (uint32_t) targetObjIndex) continue;
 
                     InstanceBBox otherBBox = Collision_computeBBox(runner, other);
                     if (!otherBBox.valid) continue;
@@ -9713,8 +9712,8 @@ static RValue builtin_position_meeting(VMContext* ctx, RValue* args, int32_t arg
                 if (other->lastCollisionQueryId == query.queryId) continue;
                 other->lastCollisionQueryId = query.queryId;
 
-                if (query.filterByObject && !VM_isObjectOrDescendant(runner->dataWin, other->objectIndex, target)) continue;
-                if (query.filterByInstanceId && other->instanceId != (uint32_t) target) continue;
+                if (!query.matchAll && query.filterByObject && !VM_isObjectOrDescendant(runner->dataWin, other->objectIndex, target)) continue;
+                if (!query.matchAll && query.filterByInstanceId && other->instanceId != (uint32_t) target) continue;
 
                 if (!Collision_pointInsideInstanceBox(ctx->runner, other, px, py)) continue;
 
