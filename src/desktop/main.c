@@ -741,16 +741,6 @@ static void onCrashSignal(int sig) {
 int main(int argc, char* argv[]) {
     setbuf(stderr, NULL);
 
-#ifndef ENABLE_SW_RENDERER
-    gfx = SOFTWARE;
-#endif
-#ifndef ENABLE_LEGACY_GL
-    gfx = LEGACY_GL;
-#endif
-#ifndef ENABLE_MODERN_GL
-    gfx = MODERN_GL;
-#endif
-
     CommandLineArgs args;
     parseCommandLineArgs(&args, argc, argv);
 
