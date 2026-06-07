@@ -1937,32 +1937,39 @@ static void glTextureSetStage(Renderer* renderer, int32_t slot, uint32_t texID) 
 
 }
 
+// Look up a texture's pixel size from the renderer's own tables.
+static bool lookupTextureSize(GLRenderer* gl, uint32_t texID, int32_t* outW, int32_t* outH) {
+    repeat(gl->textureCount, i) {
+        if (gl->textureLoaded[i] && gl->glTextures[i] == (GLuint) texID) {
+            *outW = gl->textureWidths[i];
+            *outH = gl->textureHeights[i];
+            return true;
+        }
+    }
+
+    repeat(gl->textureCount, i) {
+        if (gl->surfaceTexture[i] == (GLuint) texID) {
+            *outW = gl->surfaceWidth[i];
+            *outH = gl->surfaceHeight[i];
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static float glTextureGetTexelWidth(Renderer* renderer, uint32_t texID) {
     GLRenderer* gl = (GLRenderer*) renderer;
-    flushBatch(gl);
-    GLint width = 0;
-    GLint prev;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prev);
-    glBindTexture(GL_TEXTURE_2D, texID);
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
-    glBindTexture(GL_TEXTURE_2D, prev);
-
-    if (width == 0) return 1.0;
-    return (1.0 / (float) width);
+    int32_t width = 0, height = 0;
+    if (!lookupTextureSize(gl, texID, &width, &height) || 0 >= width) return 1.0f;
+    return 1.0f / (float) width;
 }
 
 static float glTextureGetTexelHeight(Renderer* renderer, uint32_t texID) {
     GLRenderer* gl = (GLRenderer*) renderer;
-    flushBatch(gl);
-    GLint height = 0;
-    GLint prev;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prev);
-    glBindTexture(GL_TEXTURE_2D, texID);
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
-    glBindTexture(GL_TEXTURE_2D, prev);
-
-    if (height == 0) return 1.0;
-    return (1.0 / (float) height);
+    int32_t width = 0, height = 0;
+    if (!lookupTextureSize(gl, texID, &width, &height) || 0 >= height) return 1.0f;
+    return 1.0f / (float) height;
 }
 
 static bool glShaderIsCompiled(Renderer* renderer, int32_t shaderID) {
