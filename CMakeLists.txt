@@ -139,7 +139,6 @@ target_include_directories(butterscotch PUBLIC vendor/md5)
 add_library(sha1 STATIC vendor/sha1/sha1.c)
 target_include_directories(sha1 SYSTEM PUBLIC vendor/sha1)
 target_compile_options(sha1 PRIVATE -w)
-target_link_libraries(butterscotch PRIVATE sha1)
 
 # Base64 implementation
 target_sources(butterscotch PRIVATE vendor/base64/base64.c)
@@ -224,7 +223,7 @@ if(PLATFORM STREQUAL "desktop")
     # stb_vorbis
     target_include_directories(butterscotch PUBLIC vendor/stb/vorbis)
 
-    set(PLATFORM_LIBRARIES glad m bzip2 stb_ds)
+    set(PLATFORM_LIBRARIES glad m bzip2 stb_ds sha1)
     if(MINGW)
         set(PLATFORM_LIBRARIES ${PLATFORM_LIBRARIES} opengl32 gdi32 winmm)
     elseif(NOT CMAKE_SYSTEM_NAME STREQUAL "Haiku")
@@ -311,7 +310,7 @@ elseif(PLATFORM STREQUAL "web")
     target_include_directories(butterscotch PUBLIC vendor/stb/vorbis)
 
     # bzip2
-    target_link_libraries(butterscotch PRIVATE bzip2 stb_ds)
+    target_link_libraries(butterscotch PRIVATE bzip2 stb_ds sha1)
 
     set_target_properties(butterscotch PROPERTIES SUFFIX ".mjs")
 
@@ -414,7 +413,7 @@ elseif(PLATFORM STREQUAL "ps2")
         # Compiling on the Docker container
         target_include_directories(butterscotch PRIVATE $ENV{PS2SDK}/ee/include $ENV{PS2SDK}/common/include $ENV{PS2DEV}/ee/include $ENV{GSKIT}/include)
         target_link_directories(butterscotch PRIVATE $ENV{PS2SDK}/ee/lib $ENV{GSKIT}/lib)
-        target_link_libraries(${AUDIO_LIBRARIES} butterscotch gskit dmakit audsrv pad mc kbd patches kernel c m stb_ds)
+        target_link_libraries(${AUDIO_LIBRARIES} butterscotch gskit dmakit audsrv pad mc kbd patches kernel c m stb_ds sha1)
 
         # Embed ps2sdk IRX modules (freesio2, freepad) as C arrays via bin2c
         # This avoids loading from rom0: which has compatibility issues between fat/slim PS2
@@ -598,7 +597,7 @@ elseif(PLATFORM STREQUAL "ps3")
 
     find_package(SDL2 REQUIRED)
     target_include_directories(butterscotch PRIVATE ${SDL2_INCLUDE_DIRS})
-    target_link_libraries(butterscotch PRIVATE ${SDL2_LIBRARIES} m gcm_sys rsx sysutil io audio rt lv2 io audio bzip2 stb_ds)
+    target_link_libraries(butterscotch PRIVATE ${SDL2_LIBRARIES} m gcm_sys rsx sysutil io audio rt lv2 io audio bzip2 stb_ds sha1)
 else()
     message(FATAL_ERROR "Unknown platform! ${PLATFORM}")
 endif()
