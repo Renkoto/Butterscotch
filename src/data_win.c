@@ -714,6 +714,9 @@ static void parseSPRT(BinaryReader* reader, DataWin* dw, bool skipLoadingPrecise
                     }
                 }
                 check = BinaryReader_readUint32(reader);
+            } else {
+                // For anything else, a special sprite means that there isn't any textures associated with it
+                check = 0;
             }
         }
 
