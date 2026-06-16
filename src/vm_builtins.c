@@ -1690,19 +1690,15 @@ void VMBuiltins_setVariable(VMContext* ctx, Instance* inst, int16_t builtinVarId
 
         // argument[N] - array-style write to script arguments
         case BUILTIN_VAR_ARGUMENT:
-            if (ctx->scriptArgs != nullptr && ctx->scriptArgCount > arrayIndex && arrayIndex >= 0) {
-                RValue_free(&ctx->scriptArgs[arrayIndex]);
-                ctx->scriptArgs[arrayIndex] = RValue_makeIndependent(val);
+            if (arrayIndex >= 0) {
+                VM_writeToScriptArgs(ctx, arrayIndex, val);
             }
             return;
 
         // Argument variables (argument0..argument15)
         case BUILTIN_VAR_ARGUMENT0 ... BUILTIN_VAR_ARGUMENT15: {
             int argNumber = builtinVarId - BUILTIN_VAR_ARGUMENT0;
-            if (ctx->scriptArgs != nullptr && ctx->scriptArgCount > argNumber) {
-                RValue_free(&ctx->scriptArgs[argNumber]);
-                ctx->scriptArgs[argNumber] = RValue_makeIndependent(val);
-            }
+            VM_writeToScriptArgs(ctx, argNumber, val);
             return;
         }
 
