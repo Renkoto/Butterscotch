@@ -1534,11 +1534,11 @@ void VMBuiltins_setVariable(VMContext* ctx, Instance* inst, int16_t builtinVarId
             runner->keyboard->lastKey = RValue_toInt32(val);
             return;
         case BUILTIN_VAR_KEYBOARD_STRING: {
-            const char* str = RValue_toString(val); 
-            
+            const char* str = RValue_toString(val);
+
             int32_t len = (int32_t)strlen(str);
             if (len > 1023) len = 1023;
-            
+
             memcpy(runner->keyboard->string, str, len);
             runner->keyboard->string[len] = '\0';
             runner->keyboard->stringLen = len;
@@ -4125,6 +4125,22 @@ static RValue builtin_ds_map_add(VMContext* ctx, RValue* args, int32_t argCount)
     return RValue_makeUndefined();
 }
 
+static RValue builtin_ds_map_clear(VMContext* ctx, RValue* args, int32_t argCount) {
+    if (1 > argCount) return RValue_makeUndefined();
+    Runner* runner = ctx->runner;
+    int32_t id = RValue_toInt32(args[0]);
+    DsMapEntry** mapPtr = dsMapGet(runner, id);
+    if (mapPtr == nullptr || *mapPtr == nullptr) return RValue_makeUndefined();
+    ptrdiff_t len = shlen(*mapPtr);
+    for (ptrdiff_t i = 0; i < len; i++) {
+        RValue_free(&(*mapPtr)[i].value);
+        free((*mapPtr)[i].key);
+    }
+    shfree(*mapPtr);
+    *mapPtr = nullptr;
+    return RValue_makeUndefined();
+}
+
 static RValue dsMapSetCommon(VMContext* ctx, RValue* args, int32_t argCount, bool returnPassedValue, bool returnCurrentOrNewValue) {
     if (3 > argCount) return RValue_makeUndefined();
     Runner* runner = ctx->runner;
@@ -4248,6 +4264,25 @@ static RValue builtin_ds_map_size(VMContext* ctx, RValue* args, int32_t argCount
     DsMapEntry** mapPtr = dsMapGet(runner, id);
     if (mapPtr == nullptr) return RValue_makeReal(0.0);
     return RValue_makeReal((GMLReal) shlen(*mapPtr));
+}
+
+static RValue builtin_ds_map_delete(VMContext* ctx, RValue* args, int32_t argCount) {
+    if (2 > argCount) return RValue_makeUndefined();
+    Runner* runner = ctx->runner;
+    int32_t id = RValue_toInt32(args[0]);
+    DsMapEntry** mapPtr = dsMapGet(runner, id);
+    if (mapPtr == nullptr || *mapPtr == nullptr) return RValue_makeUndefined();
+
+    char* key = RValue_toString(args[1]);
+    ptrdiff_t idx = shgeti(*mapPtr, key);
+    if (idx != -1) {
+        RValue_free(&(*mapPtr)[idx].value);
+        char* storedKey = (*mapPtr)[idx].key;
+        shdel(*mapPtr, storedKey);
+        free(storedKey);
+    }
+    free(key);
+    return RValue_makeUndefined();
 }
 
 static RValue builtin_ds_map_destroy(VMContext* ctx, RValue* args, int32_t argCount) {
@@ -4758,7 +4793,7 @@ static RValue builtin_ds_stack_push(VMContext* ctx, RValue* args, int32_t argCou
     int32_t id = RValue_toInt32(args[0]);
     DsStack* s = dsStackGet(ctx->runner, id);
     if (s == nullptr) return RValue_makeUndefined();
-    
+
     for (int32_t i = argCount - 1; i >= 1; --i) {
         arrput(s->items, RValue_makeIndependent(args[i]));
     }
@@ -4768,13 +4803,13 @@ static RValue builtin_ds_stack_push(VMContext* ctx, RValue* args, int32_t argCou
 static RValue builtin_ds_stack_pop(VMContext* ctx, RValue* args, MAYBE_UNUSED int32_t argCount) {
     int32_t id = RValue_toInt32(args[0]);
     DsStack* s = dsStackGet(ctx->runner, id);
-    
+
     if (s == nullptr || arrlen(s->items) == 0) return RValue_makeReal(0.0);
-    
+
     int32_t lastIdx = arrlen(s->items) - 1;
     RValue head = s->items[lastIdx];
-    arrdel(s->items, lastIdx); 
-    
+    arrdel(s->items, lastIdx);
+
     return head;
 }
 
@@ -4801,11 +4836,11 @@ static RValue builtin_ds_stack_write(VMContext* ctx, RValue* args, MAYBE_UNUSED 
 
 static RValue builtin_ds_stack_read(VMContext* ctx, RValue* args, MAYBE_UNUSED int32_t argCount) {
     int32_t id = RValue_toInt32(args[0]);
-    
+
     if (args[1].type != RVALUE_STRING || args[1].string == nullptr || args[1].string[0] == '\0') {
         return RValue_makeBool(false);
     }
-    
+
     DsStack* st = dsStackGet(ctx->runner, id);
     if (st == nullptr) return RValue_makeBool(false);
 
@@ -4818,9 +4853,9 @@ static RValue builtin_ds_stack_read(VMContext* ctx, RValue* args, MAYBE_UNUSED i
     repeat(byteLen, i) {
         int hi = dsHexNibble(hex[i * 2]);
         int lo = dsHexNibble(hex[i * 2 + 1]);
-        if (hi < 0 || lo < 0) { 
-            free(bytes); 
-            return RValue_makeBool(false); 
+        if (hi < 0 || lo < 0) {
+            free(bytes);
+            return RValue_makeBool(false);
         }
         bytes[i] = (uint8_t) ((hi << 4) | lo);
     }
@@ -4828,7 +4863,7 @@ static RValue builtin_ds_stack_read(VMContext* ctx, RValue* args, MAYBE_UNUSED i
     DsReadStream s = {0};
     s.data = bytes;
     s.size = byteLen;
-    
+
     uint32_t magic = dsStreamReadU32(&s);
     int32_t version;
     if (magic == 102) {
@@ -4841,9 +4876,9 @@ static RValue builtin_ds_stack_read(VMContext* ctx, RValue* args, MAYBE_UNUSED i
     }
 
     int32_t len = dsStreamReadS32(&s);
-    if (s.error || 0 > len) { 
-        free(bytes); 
-        return RValue_makeBool(false); 
+    if (s.error || 0 > len) {
+        free(bytes);
+        return RValue_makeBool(false);
     }
 
     // Replace stack contents
@@ -4855,10 +4890,10 @@ static RValue builtin_ds_stack_read(VMContext* ctx, RValue* args, MAYBE_UNUSED i
 
     repeat(len, i) {
         RValue v = dsStreamReadValue(&s, version);
-        if (s.error) { 
-            RValue_free(&v); 
-            free(bytes); 
-            return RValue_makeBool(false); 
+        if (s.error) {
+            RValue_free(&v);
+            free(bytes);
+            return RValue_makeBool(false);
         }
         arrput(st->items, v);
     }
@@ -5284,7 +5319,7 @@ static RValue builtin_ds_priority_write(VMContext* ctx, RValue* args, MAYBE_UNUS
 
     uint8_t* buf = nullptr;
     int32_t len = (int32_t) arrlen(q->items);
-    
+
     dsStreamAppendU32(&buf, 503);
     dsStreamAppendU32(&buf, (uint32_t) len);
 
@@ -5308,11 +5343,11 @@ static RValue builtin_ds_priority_write(VMContext* ctx, RValue* args, MAYBE_UNUS
 
 static RValue builtin_ds_priority_read(VMContext* ctx, RValue* args, MAYBE_UNUSED int32_t argCount) {
     int32_t id = RValue_toInt32(args[0]);
-    
+
     if (args[1].type != RVALUE_STRING || args[1].string == nullptr || args[1].string[0] == '\0') {
         return RValue_makeBool(false);
     }
-    
+
     DsPriority* q = dsPriorityGet(ctx->runner, id);
     if (q == nullptr) return RValue_makeBool(false);
 
@@ -5325,9 +5360,9 @@ static RValue builtin_ds_priority_read(VMContext* ctx, RValue* args, MAYBE_UNUSE
     repeat(byteLen, i) {
         int hi = dsHexNibble(hex[i * 2]);
         int lo = dsHexNibble(hex[i * 2 + 1]);
-        if (hi < 0 || lo < 0) { 
-            free(bytes); 
-            return RValue_makeBool(false); 
+        if (hi < 0 || lo < 0) {
+            free(bytes);
+            return RValue_makeBool(false);
         }
         bytes[i] = (uint8_t) ((hi << 4) | lo);
     }
@@ -5335,22 +5370,22 @@ static RValue builtin_ds_priority_read(VMContext* ctx, RValue* args, MAYBE_UNUSE
     DsReadStream s = {0};
     s.data = bytes;
     s.size = byteLen;
-    
+
     uint32_t magic = dsStreamReadU32(&s);
     int32_t version;
     if (magic == 502) {
         version = 3;
     } else if (magic == 503) {
-        version = 0; 
+        version = 0;
     } else {
         free(bytes);
         return RValue_makeBool(false);
     }
 
     int32_t len = dsStreamReadS32(&s);
-    if (s.error || 0 > len) { 
-        free(bytes); 
-        return RValue_makeBool(false); 
+    if (s.error || 0 > len) {
+        free(bytes);
+        return RValue_makeBool(false);
     }
 
     int32_t* tempPri = (int32_t*) safeMalloc((size_t) len * sizeof(int32_t));
@@ -5373,7 +5408,7 @@ static RValue builtin_ds_priority_read(VMContext* ctx, RValue* args, MAYBE_UNUSE
         RValue v = dsStreamReadValue(&s, version);
         if (s.error) {
             RValue_free(&v);
-            repeat(i, j) RValue_free(&tempVal[j]); 
+            repeat(i, j) RValue_free(&tempVal[j]);
             free(tempPri);
             free(tempVal);
             free(bytes);
@@ -7157,7 +7192,7 @@ static RValue builtin_keyboard_unset_map(VMContext* ctx, MAYBE_UNUSED RValue* ar
 }
 
 // Mouse functions
-static RValue builtinDeviceMouseCheckButton(VMContext* ctx, RValue* args, int32_t argCount) {   
+static RValue builtinDeviceMouseCheckButton(VMContext* ctx, RValue* args, int32_t argCount) {
     if (2 > argCount) return RValue_makeBool(false);
     Runner* runner = (Runner*) ctx->runner;
 
@@ -9920,18 +9955,18 @@ static RValue builtin_draw_get_font(VMContext* ctx, MAYBE_UNUSED RValue* args, M
 
 static RValue builtin_motion_add(VMContext* ctx, RValue* args, int32_t argCount) {
     if (2 > argCount) return RValue_makeUndefined();
-    
+
     Instance* inst = ctx->currentInstance;
     if (inst == nullptr) return RValue_makeUndefined();
-    
+
     GMLReal dir = RValue_toReal(args[0]);
     GMLReal spd = RValue_toReal(args[1]);
     GMLReal rad = dir * (M_PI / 180.0);
-    
+
     inst->hspeed += (float)(GMLReal_cos(rad) * spd);
     inst->vspeed += (float)(-GMLReal_sin(rad) * spd);
     Instance_computeSpeedFromComponents(inst);
-    
+
     return RValue_makeUndefined();
 }
 
@@ -14451,7 +14486,7 @@ static RValue builtin_object_set_visible(VMContext* ctx, RValue* args, int32_t a
 
 static RValue builtin_object_is_ancestor(VMContext* ctx, RValue* args, int32_t argCount) {
     if (2 > argCount) return RValue_makeUndefined();
-    
+
     int32_t id = RValue_toInt32(args[0]);
     int32_t ancestorId = RValue_toInt32(args[1]);
 
@@ -14905,25 +14940,25 @@ static RValue builtin_shader_set_uniformF(VMContext* ctx, MAYBE_UNUSED RValue* a
 
 static RValue builtin_shader_set_uniform_f_array(VMContext* ctx, MAYBE_UNUSED RValue* args, MAYBE_UNUSED int32_t argCount) {
     if (argCount < 2) return RValue_makeUndefined();
-    
+
     int32_t handle = (int32_t) RValue_toReal(args[0]);
     if (args[1].type != RVALUE_ARRAY || args[1].array == nullptr) {
         return RValue_makeUndefined();
     }
-    
+
     GMLArray* arr = args[1].array;
     uint32_t count = GMLArray_length1D(arr);
     if (count == 0) return RValue_makeUndefined();
-    
+
     float* values = safeMalloc(count * sizeof(float));
     for (uint32_t i = 0; i < count; i++) {
         values[i] = (float) RValue_toReal(*GMLArray_slot(arr, i));
     }
-    
+
     if (ctx->runner->renderer->vtable->shaderSetUniformFArray != nullptr) {
         ctx->runner->renderer->vtable->shaderSetUniformFArray(ctx->runner->renderer, handle, values, count);
     }
-    
+
     free(values);
     return RValue_makeUndefined();
 }
@@ -14945,7 +14980,7 @@ static RValue builtin_sprite_get_uvs(VMContext* ctx, MAYBE_UNUSED RValue* args, 
     int32_t subimg = RValue_toInt32(args[1]);
     if (0 > subimg && ctx->currentInstance != nullptr) {
         subimg = (int32_t) ctx->currentInstance->imageIndex;
-    }  
+    }
     int32_t TpagIndex = Renderer_resolveTPAGIndex(ctx->dataWin, spriteIndex, subimg);
     //I think default texture page size is 2048x2048?
     float DivW = 0.00048828125; //1.0/2048.0
@@ -14953,7 +14988,7 @@ static RValue builtin_sprite_get_uvs(VMContext* ctx, MAYBE_UNUSED RValue* args, 
 
     DivW = ctx->runner->renderer->vtable->textureGetTexelWidth(ctx->runner->renderer, ctx->runner->renderer->vtable->spriteGetTexture(ctx->runner->renderer, TpagIndex));
     DivH = ctx->runner->renderer->vtable->textureGetTexelHeight(ctx->runner->renderer, ctx->runner->renderer->vtable->spriteGetTexture(ctx->runner->renderer, TpagIndex));
-    
+
     float left = (float) ctx->dataWin->tpag.items[TpagIndex].sourceX * DivW;
     float top = (float) ctx->dataWin->tpag.items[TpagIndex].sourceY * DivH;
     float right = (float)  left + (ctx->dataWin->tpag.items[TpagIndex].sourceWidth * DivW);
@@ -14982,7 +15017,7 @@ static RValue builtin_sprite_get_texture(VMContext* ctx, MAYBE_UNUSED RValue* ar
     int32_t subimg = RValue_toInt32(args[1]);
     if (0 > subimg && ctx->currentInstance != nullptr) {
         subimg = (int32_t) ctx->currentInstance->imageIndex;
-    }  
+    }
     int32_t TpagIndex = Renderer_resolveTPAGIndex(ctx->dataWin, spriteIndex, subimg);
 
     return RValue_makeInt32(ctx->runner->renderer->vtable->spriteGetTexture(ctx->runner->renderer, TpagIndex));
@@ -15001,16 +15036,16 @@ static RValue builtin_font_get_uvs(VMContext* ctx, MAYBE_UNUSED RValue* args, MA
     //if (0 > fontIndex || ctx->dataWin->font.count <= (uint32_t) fontIndex) return;
 
     Font* font = &ctx->runner->dataWin->font.fonts[fontIndex];
-    
+
 
     int32_t TpagIndex = font->tpagIndex;
     //I think default texture page size is 2048x2048?
     float DivW = 0.00048828125; //1.0/2048.0
     float DivH = 0.00048828125; //1.0/2048.0
-    
+
     DivW = ctx->runner->renderer->vtable->textureGetTexelWidth(ctx->runner->renderer, ctx->runner->renderer->vtable->spriteGetTexture(ctx->runner->renderer, TpagIndex));
     DivH = ctx->runner->renderer->vtable->textureGetTexelHeight(ctx->runner->renderer, ctx->runner->renderer->vtable->spriteGetTexture(ctx->runner->renderer, TpagIndex));
-    
+
     float left = (float) ctx->dataWin->tpag.items[TpagIndex].sourceX * DivW;
     float top = (float) ctx->dataWin->tpag.items[TpagIndex].sourceY * DivH;
     float right = (float)  left + (ctx->dataWin->tpag.items[TpagIndex].sourceWidth * DivW);
@@ -15146,7 +15181,7 @@ void VMBuiltins_registerAll(VMContext* ctx) {
     VM_registerBuiltin(ctx, "move_outside_solid", builtin_move_outside_solid);
     VM_registerBuiltin(ctx, "move_outside_all", builtin_move_outside_all);
     VM_registerBuiltin(ctx, "move_bounce_solid", builtin_move_bounce_solid);
-    VM_registerBuiltin(ctx, "move_bounce_all", builtin_move_bounce_all);    
+    VM_registerBuiltin(ctx, "move_bounce_all", builtin_move_bounce_all);
     VM_registerBuiltin(ctx, "lengthdir_x", builtin_lengthdir_x);
     VM_registerBuiltin(ctx, "lengthdir_y", builtin_lengthdir_y);
 
@@ -15260,7 +15295,9 @@ void VMBuiltins_registerAll(VMContext* ctx) {
 
     // ds_map
     VM_registerBuiltin(ctx, "ds_map_create", builtin_ds_map_create);
+    VM_registerBuiltin(ctx, "ds_map_delete", builtin_ds_map_delete);
     VM_registerBuiltin(ctx, "ds_map_add", builtin_ds_map_add);
+    VM_registerBuiltin(ctx, "ds_map_clear", builtin_ds_map_clear);
     VM_registerBuiltin(ctx, "ds_map_set", builtin_ds_map_set);
     VM_registerBuiltin(ctx, "ds_map_set_pre", builtin_ds_map_set_pre);
     VM_registerBuiltin(ctx, "ds_map_set_post", builtin_ds_map_set_post);
@@ -16046,9 +16083,9 @@ void VMBuiltins_registerAll(VMContext* ctx) {
     VM_registerBuiltin(ctx, "shader_set", builtin_shader_set);
     VM_registerBuiltin(ctx, "shader_reset", builtin_shader_reset);
     VM_registerBuiltin(ctx, "shader_current", builtin_shader_current);
-    VM_registerBuiltin(ctx, "shader_is_compiled", builtin_shader_is_compiled); 
+    VM_registerBuiltin(ctx, "shader_is_compiled", builtin_shader_is_compiled);
     VM_registerBuiltin(ctx, "shader_get_name", builtin_shader_get_name);
-    VM_registerBuiltin(ctx, "shaders_are_supported", builtin_shaders_are_supported);  
+    VM_registerBuiltin(ctx, "shaders_are_supported", builtin_shaders_are_supported);
     VM_registerBuiltin(ctx, "shader_get_uniform", builtin_shader_get_uniform);
     VM_registerBuiltin(ctx, "shader_get_sampler_index", builtin_shader_get_sampler_index);
     VM_registerBuiltin(ctx, "shader_set_uniform_f", builtin_shader_set_uniformF);
@@ -16057,7 +16094,7 @@ void VMBuiltins_registerAll(VMContext* ctx) {
     VM_registerBuiltin(ctx, "sprite_get_uvs", builtin_sprite_get_uvs);
     VM_registerBuiltin(ctx, "sprite_get_texture", builtin_sprite_get_texture);
     VM_registerBuiltin(ctx, "sprite_get_speed", builtin_sprite_get_speed);
-    VM_registerBuiltin(ctx, "font_get_uvs", builtin_font_get_uvs);   
+    VM_registerBuiltin(ctx, "font_get_uvs", builtin_font_get_uvs);
     VM_registerBuiltin(ctx, "texture_get_texel_width", builtin_texture_get_texel_width);
     VM_registerBuiltin(ctx, "texture_get_texel_height", builtin_texture_get_texel_height);
     VM_registerBuiltin(ctx, "texture_get_uvs", builtin_texture_get_uvs);
