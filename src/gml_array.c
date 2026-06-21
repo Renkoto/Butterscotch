@@ -107,8 +107,8 @@ void GMLArray_growTo(GMLArray* arr, int32_t minLength) {
     if (arr == nullptr || minLength <= 0) return;
     if (arr->type == GML_LEGACY_ARRAY) {
         int32_t idx = minLength - 1;
-        int32_t row = idx / GML_ARRAY_STRIDE;
-        int32_t col = idx % GML_ARRAY_STRIDE;
+        int32_t row = idx / GML_LEGACY_ARRAY_STRIDE;
+        int32_t col = idx % GML_LEGACY_ARRAY_STRIDE;
         ensureLegacyRowCapacity(arr, row + 1);
         if (row + 1 > arr->legacy.rowCount) arr->legacy.rowCount = row + 1;
         growLegacyRow(&arr->legacy.rows[row], col + 1);

@@ -4590,10 +4590,10 @@ static RValue dsStreamReadValue(int32_t wadVersion, DsReadStream* s, int32_t ver
                     for (int32_t o = 0; len1d > o && !s->error; o++) {
                         int32_t len = dsStreamReadS32(s);
                         if (s->error || 0 > len) { s->error = true; break; }
-                        if (len > 0) GMLArray_growTo(arr, o * GML_ARRAY_STRIDE + len);
+                        if (len > 0) GMLArray_growTo(arr, o * GML_LEGACY_ARRAY_STRIDE + len);
                         for (int32_t i = 0; len > i && !s->error; i++) {
                             RValue v = dsStreamReadValue(wadVersion, s, version);
-                            RValue* slot = GMLArray_slot(arr, o * GML_ARRAY_STRIDE + i);
+                            RValue* slot = GMLArray_slot(arr, o * GML_LEGACY_ARRAY_STRIDE + i);
                             if (slot != nullptr) { RValue_free(slot); *slot = v; } else { RValue_free(&v); }
                         }
                     }

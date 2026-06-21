@@ -15,7 +15,7 @@
 //
 // "b = a" bumps refCount and shares, never clones eagerly. All forking happens lazily on write.
 
-#define GML_ARRAY_STRIDE 32000
+#define GML_LEGACY_ARRAY_STRIDE 32000
 
 typedef enum {
     GML_LEGACY_ARRAY,
@@ -60,15 +60,15 @@ void GMLArray_growTo(GMLArray* arr, int32_t minLength);
 static inline RValue* GMLArray_slot(GMLArray* arr, int32_t index) {
     if (arr == nullptr || 0 > index) return nullptr;
     if (arr->type == GML_LEGACY_ARRAY) {
-        if (GML_ARRAY_STRIDE > index) {
+        if (GML_LEGACY_ARRAY_STRIDE > index) {
             // Fast path: For the common 32000 > idx (row 0), skip the div/mod entirely.
             if (arr->legacy.rowCount == 0) return nullptr;
             GMLArrayRow* row0 = &arr->legacy.rows[0];
             if (index >= row0->length) return nullptr;
             return &row0->data[index];
         }
-        int32_t row = index / GML_ARRAY_STRIDE;
-        int32_t col = index % GML_ARRAY_STRIDE;
+        int32_t row = index / GML_LEGACY_ARRAY_STRIDE;
+        int32_t col = index % GML_LEGACY_ARRAY_STRIDE;
         if (row >= arr->legacy.rowCount) return nullptr;
         GMLArrayRow* r = &arr->legacy.rows[row];
         if (col >= r->length) return nullptr;
