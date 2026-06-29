@@ -7701,7 +7701,7 @@ static RValue builtin_window_set_caption(VMContext* ctx, MAYBE_UNUSED RValue* ar
     bool changed = runner->windowTitle == nullptr || strcmp(runner->windowTitle, val) != 0;
     if (changed) {
         free(runner->windowTitle);
-        runner->windowTitle = strdup(val);
+        runner->windowTitle = safeStrdup(val);
         if (runner->setWindowTitle) {
             runner->setWindowTitle(val);
             printf("Runner: Window title set to: %s\n", val);
@@ -7714,7 +7714,7 @@ static RValue builtin_window_set_caption(VMContext* ctx, MAYBE_UNUSED RValue* ar
 
 static RValue builtin_window_get_caption(VMContext* ctx, MAYBE_UNUSED RValue* args, MAYBE_UNUSED int32_t argCount) {
     Runner* runner = ctx->runner;
-    return RValue_makeOwnedString(strdup(runner->windowTitle ? runner->windowTitle : ""));
+    return RValue_makeOwnedString(safeStrdup(runner->windowTitle ? runner->windowTitle : ""));
 }
 
 static RValue builtin_window_has_focus(VMContext* ctx, MAYBE_UNUSED RValue* args, MAYBE_UNUSED int32_t argCount) {
